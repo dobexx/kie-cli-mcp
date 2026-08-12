@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createWriteStream, existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import express, { type Request, type Response } from "express";
 
@@ -72,6 +71,44 @@ function sanitizeFilename(name: string): string {
 function getExtension(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase() || "bin";
   return ext;
+}
+
+function getWidgetHtml(): string {
+  // Try dist first (production), then src (dev)
+  const paths = [
+    join(process.cwd(), "dist", "upload-widget.html"),
+    join(process.cwd(), "src", "upload-widget.html"),
+    join(__dirname, "upload-widget.html"),
+  ];
+  for (const p of paths) {
+    if (existsSync(p)) {
+      return readFileSync(p, "utf-8");
+    }
+  }
+  // Fallback: inline minimal HTML
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Upload</title></head>
+<body style="font-family:sans-serif;background:#1a1a2e;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0">
+<div style="background:#16213e;padding:24px;border-radius:12px;max-width:400px;width:100%">
+<h2>📎 Upload Reference File</h2>
+<input type="file" id="f" style="margin:16px 0;width:100%">
+<button onclick="upload()" style="width:100%;padding:12px;background:#4299e1;color:white;border:none;border-radius:8px;cursor:pointer">Upload</button>
+<div id="s" style="margin-top:16px;padding:12px;border-radius:8px;display:none"></div>
+</div>
+<script>
+async function upload() {
+  const f = document.getElementById('f').files[0];
+  if (!f) return;
+  const s = document.getElementById('s');
+  s.style.display='block'; s.style.background='#2b6cb0'; s.textContent='Uploading...';
+  try {
+    const t = await fetch('/upload/token?filename='+encodeURIComponent(f.name)).then(r=>r.json());
+    const u = await fetch(t.upload_url, {method:'PUT', headers:{'Content-Type':f.type}, body:f}).then(r=>r.json());
+    s.style.background='#276749'; s.innerHTML='✅ <a href="'+u.file_url+'" style="color:#c6f6d5">'+u.file_url+'</a>';
+    window.parent.postMessage({type:'mcp-tool-result',result:u}, '*');
+  } catch(e) { s.style.background='#742a2a'; s.textContent='❌ '+e.message; }
+}
+</script></body></html>`;
 }
 
 export function createUploadRouter(): express.Router {
@@ -188,7 +225,7 @@ export function createUploadRouter(): express.Router {
     }
 
     try {
-      const data = await readFile(fileInfo.path);
+      const data = readFileSync(fileInfo.path);
       const mimeTypes: Record<string, string> = {
         jpg: "image/jpeg",
         jpeg: "image/jpeg",
@@ -209,13 +246,14 @@ export function createUploadRouter(): express.Router {
     }
   });
 
-
   /**
    * GET /ui/upload/form.html
+   *
    * Serves the upload widget HTML for MCP Apps (SEP-1865) and browser fallback.
    */
   router.get("/ui/upload/form.html", (_req: Request, res: Response) => {
-    res.sendFile("upload-widget.html", { root: __dirname });
+    res.setHeader("Content-Type", "text/html");
+    res.send(getWidgetHtml());
   });
 
   return router;
