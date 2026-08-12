@@ -24,6 +24,7 @@ import { recraftRemoveBackgroundTool } from "./recraft_remove_background.js";
 import { runwayAlephVideoTool } from "./runway_aleph_video.js";
 import { sunoGenerateMusicTool } from "./suno_generate_music.js";
 import { topazUpscaleImageTool } from "./topaz_upscale_image.js";
+import { uploadFileTool } from "./upload_file.js";
 import { veo3GenerateVideoTool } from "./veo3_generate_video.js";
 import { veo3Get1080pVideoTool } from "./veo3_get_1080p_video.js";
 import { waitForTaskTool } from "./wait_for_task.js";
@@ -64,6 +65,7 @@ export const TOOL_REGISTRY: ToolDef[] = [
   runwayAlephVideoTool,
   sunoGenerateMusicTool,
   topazUpscaleImageTool,
+  uploadFileTool,
   veo3GenerateVideoTool,
   veo3Get1080pVideoTool,
   waitForTaskTool,
