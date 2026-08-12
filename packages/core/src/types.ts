@@ -939,10 +939,10 @@ export const GrokImagineSchema = z
     // Image-to-video mode: use image_urls OR task_id+index
     image_urls: z
       .array(z.string().url())
-      .max(1)
+      .max(5)
       .optional()
       .describe(
-        "Single image URL for image-to-video mode (alternative to task_id)",
+        "Image URL(s) for image-to-video (1 image) or image-to-image (up to 5 reference images)",
       ),
     task_id: z
       .string()
@@ -974,7 +974,7 @@ export const GrokImagineSchema = z
       ),
     // Mode selection (auto-detected if not provided)
     generation_mode: z
-      .enum(["text-to-image", "text-to-video", "image-to-video", "upscale"])
+      .enum(["text-to-image", "text-to-video", "image-to-video", "image-to-image", "upscale"])
       .optional()
       .describe(
         "Explicit mode selection (auto-detected if not provided): text-to-image, text-to-video, image-to-video, or upscale",
@@ -997,6 +997,12 @@ export const GrokImagineSchema = z
           (data.image_urls && data.image_urls.length > 0) || !!data.task_id
         );
       }
+      // Image-to-image needs image_urls AND prompt
+      if (data.generation_mode === "image-to-image") {
+        return (
+          (data.image_urls && data.image_urls.length > 0) && !!data.prompt
+        );
+      }
       // Text modes require prompt
       if (
         data.generation_mode === "text-to-image" ||
@@ -1004,10 +1010,15 @@ export const GrokImagineSchema = z
       ) {
         return !!data.prompt;
       }
-      // Auto-detect: if task_id without prompt = upscale, if image_urls = i2v, else text mode
+      // Auto-detect: task_id without prompt = upscale
       if (data.task_id && !data.prompt && !data.image_urls) {
         return true; // upscale
       }
+      // image_urls + prompt = image-to-image (edit)
+      if (data.image_urls && data.image_urls.length > 0 && data.prompt) {
+        return true; // image-to-image
+      }
+      // image_urls alone = image-to-video
       if (data.image_urls && data.image_urls.length > 0) {
         return true; // image-to-video
       }
@@ -1129,7 +1140,7 @@ export const HappyHorseVideoSchema = z
     // I2V
     image_urls: z
       .array(z.string().url())
-      .max(1)
+      .max(5)
       .optional()
       .describe("Input image URL for image-to-video mode (max 1)"),
     // R2V

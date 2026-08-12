@@ -4,7 +4,7 @@ import type { ToolDef, ToolContext, ToolResult } from "./types.js";
 
 export const grokImagineTool: ToolDef<typeof GrokImagineSchema> = {
   name: "grok_imagine",
-  description: "Generate images and videos using xAI's Grok Imagine (4 modes: text-to-image, text-to-video, image-to-video, upscale). Supports synchronized audio with video. Pricing: ~$0.10 per 6-second video",
+  description: "Generate and edit images/videos using xAI's Grok Imagine (5 modes: text-to-image, text-to-video, image-to-video, image-to-image/edit, upscale). Supports synchronized audio with video. Pricing: ~$0.02 per image, ~$0.10 per 6-second video",
   category: "video",
   schema: GrokImagineSchema,
   async run(args, ctx: ToolContext): Promise<ToolResult> {
@@ -26,11 +26,13 @@ export const grokImagineTool: ToolDef<typeof GrokImagineSchema> = {
           request.generation_mode ||
           (hasTaskId && !hasPrompt && !hasImageUrls
             ? "upscale"
-            : hasImageUrls || hasTaskId
-              ? "image-to-video"
-              : request.generation_mode === "text-to-image"
-                ? "text-to-image"
-                : "text-to-video");
+            : hasImageUrls && hasPrompt
+              ? "image-to-image"  // image_urls + prompt = edit
+              : hasImageUrls || hasTaskId
+                ? "image-to-video"
+                : request.generation_mode === "text-to-image"
+                  ? "text-to-image"
+                  : "text-to-video");
 
         // Store task in database
         await ctx.db.createTask({
@@ -58,7 +60,8 @@ export const grokImagineTool: ToolDef<typeof GrokImagineSchema> = {
                     style_mode: request.mode || "normal",
                   },
                   pricing:
-                    detectedMode === "text-to-image"
+                    detectedMode === "text-to-image" ||
+                    detectedMode === "image-to-image"
                       ? "~$0.02 per image"
                       : "~$0.10 per 6-second video",
                   next_steps: [
@@ -80,13 +83,13 @@ export const grokImagineTool: ToolDef<typeof GrokImagineSchema> = {
         return ctx.formatError("grok_imagine", error, {
           prompt:
             "Text prompt (required for text modes, optional for image-to-video)",
-          image_urls: "Single image URL for image-to-video mode",
+          image_urls: "Image URL(s): 1 for image-to-video, up to 5 for image-to-image (edit)",
           task_id: "Task ID for upscale or image-to-video from generated image",
           index: "Image index (0-5) when using task_id",
           aspect_ratio: "Aspect ratio: 2:3, 3:2, or 1:1 (default: 1:1)",
           mode: "Style mode: fun, normal (default), or spicy",
           generation_mode:
-            "Explicit mode: text-to-image, text-to-video, image-to-video, upscale",
+            "Explicit mode: text-to-image, text-to-video, image-to-video, image-to-image, upscale",
         });
       }
 
@@ -94,7 +97,7 @@ export const grokImagineTool: ToolDef<typeof GrokImagineSchema> = {
         prompt:
           "Text prompt (required for text modes, optional for image-to-video)",
         generation_mode:
-          "Explicit mode: text-to-image, text-to-video, image-to-video, upscale",
+          "Explicit mode: text-to-image, text-to-video, image-to-video, image-to-image, upscale",
       });
     }
   },
