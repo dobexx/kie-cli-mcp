@@ -209,5 +209,14 @@ export function createUploadRouter(): express.Router {
     }
   });
 
+
+  /**
+   * GET /ui/upload/form.html
+   * Serves the upload widget HTML for MCP Apps (SEP-1865) and browser fallback.
+   */
+  router.get("/ui/upload/form.html", (_req: Request, res: Response) => {
+    res.sendFile("upload-widget.html", { root: __dirname });
+  });
+
   return router;
 }
