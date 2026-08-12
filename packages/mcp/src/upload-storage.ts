@@ -85,7 +85,7 @@ function getWidgetHtml(): string {
       return readFileSync(p, "utf-8");
     }
   }
-  // Fallback: inline minimal HTML
+  // Fallback: inline minimal HTML with auto-close & clipboard
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Upload</title></head>
 <body style="font-family:sans-serif;background:#1a1a2e;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0">
@@ -104,10 +104,40 @@ async function upload() {
   try {
     const t = await fetch('/upload/token?filename='+encodeURIComponent(f.name)).then(r=>r.json());
     const u = await fetch(t.upload_url, {method:'PUT', headers:{'Content-Type':f.type}, body:f}).then(r=>r.json());
-    s.style.background='#276749'; s.innerHTML='✅ <a href="'+u.file_url+'" style="color:#c6f6d5">'+u.file_url+'</a>';
+
+    // Copy to clipboard
+    try {
+      await navigator.clipboard.writeText(u.file_url);
+      s.style.background='#276749';
+      s.innerHTML='✅ Uploaded! URL copied to clipboard.<br><small style="color:#a0aec0">Window closes in 3s...</small>';
+    } catch(e) {
+      s.style.background='#276749';
+      s.innerHTML='✅ Uploaded! <a href="'+u.file_url+'" style="color:#c6f6d5">'+u.file_url+'</a><br><small style="color:#a0aec0">Click link to copy, window closes in 3s...</small>';
+    }
+
+    // Notify parent (if in iframe)
     window.parent.postMessage({type:'mcp-tool-result',result:u}, '*');
-  } catch(e) { s.style.background='#742a2a'; s.textContent='❌ '+e.message; }
+
+    // Auto-close after 3 seconds
+    setTimeout(() => window.close(), 3000);
+  } catch(e) {
+    s.style.background='#742a2a'; s.textContent='❌ '+e.message;
+  }
 }
+
+// Click link to copy manually (fallback if clipboard API fails)
+document.addEventListener('click', async (e) => {
+  if (e.target.tagName === 'A' && e.target.href.includes('/files/')) {
+    e.preventDefault();
+    try {
+      await navigator.clipboard.writeText(e.target.href);
+      e.target.innerHTML = '✅ Copied!';
+      setTimeout(() => window.close(), 1500);
+    } catch(err) {
+      window.location.href = e.target.href;
+    }
+  }
+});
 </script></body></html>`;
 }
 

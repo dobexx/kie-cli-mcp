@@ -204,7 +204,19 @@
         if (!uploadRes.ok) throw new Error('Upload failed');
         const uploadData = await uploadRes.json();
 
-        showStatus('success', '✅ Uploaded! URL: ' + uploadData.file_url);
+        // Copy to clipboard
+        let clipboardMsg = '';
+        try {
+          await navigator.clipboard.writeText(uploadData.file_url);
+          clipboardMsg = ' URL copied to clipboard.';
+        } catch(e) {
+          clipboardMsg = ' Click the link to copy.';
+        }
+
+        showStatus('success', '✅ Uploaded!' + clipboardMsg + ' Window closes in 3s...');
+
+        // Auto-close after 3 seconds
+        setTimeout(() => window.close(), 3000);
 
         // Step 3: Notify MCP host (if available)
         if (window.parent !== window) {
@@ -223,6 +235,20 @@
       } catch (err) {
         showStatus('error', '❌ Upload failed: ' + err.message);
         uploadBtn.disabled = false;
+      }
+    });
+
+    // Click link to copy manually (fallback)
+    document.addEventListener('click', async (e) => {
+      if (e.target.tagName === 'A' && e.target.href.includes('/files/')) {
+        e.preventDefault();
+        try {
+          await navigator.clipboard.writeText(e.target.href);
+          e.target.textContent = '✅ Copied!';
+          setTimeout(() => window.close(), 1500);
+        } catch(err) {
+          window.location.href = e.target.href;
+        }
       }
     });
   </script>
