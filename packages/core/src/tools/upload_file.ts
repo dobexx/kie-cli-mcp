@@ -141,7 +141,13 @@ export const uploadFileTool: ToolDef<typeof UploadFileSchema> = {
         contentType,
       });
 
-      if (response.code === 200 && response.data?.fileUrl) {
+      // The provider nests the payload: data.downloadUrl is the public URL.
+      // (Older docs mentioned data.fileUrl / top-level fileUrl — accept all.)
+      const data: any = (response as any).data ?? {};
+      const fileUrl: string | undefined =
+        data.downloadUrl ?? data.fileUrl ?? (response as any).fileUrl;
+
+      if (response.code === 200 && fileUrl) {
         return {
           content: [
             {
@@ -149,10 +155,11 @@ export const uploadFileTool: ToolDef<typeof UploadFileSchema> = {
               text: JSON.stringify(
                 {
                   success: true,
-                  file_url: response.data.fileUrl,
+                  file_url: fileUrl,
                   filename: request.filename,
                   content_type: contentType,
                   size_bytes: bytes.length,
+                  provider_file_name: data.fileName,
                   usage:
                     "Pass file_url in tools expecting public URLs, e.g. as first_frame_url or inside reference_image_urls of bytedance_seedance_video.",
                 },
@@ -164,7 +171,9 @@ export const uploadFileTool: ToolDef<typeof UploadFileSchema> = {
         };
       }
 
-      throw new Error(response.msg || "Upload failed without error message");
+      throw new Error(
+        `Upload response missing file URL (code=${response.code}, msg=${response.msg ?? "n/a"})`,
+      );
     } catch (error) {
       return ctx.formatError("upload_file", error, {
         file_base64:
