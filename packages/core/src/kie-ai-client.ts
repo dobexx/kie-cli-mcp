@@ -1281,9 +1281,11 @@ export class KieAiClient {
       request.generation_mode ||
       (hasTaskId && !hasPrompt && !hasImageUrls
         ? "upscale"
-        : hasImageUrls || hasTaskId
-          ? "image-to-video"
-          : "text-to-video"); // Default to text-to-video if prompt provided
+        : hasImageUrls && hasPrompt
+          ? "image-to-image"  // image_urls + prompt = edit
+          : hasImageUrls || hasTaskId
+            ? "image-to-video"
+            : "text-to-video"); // Default to text-to-video if prompt provided
 
     // If user explicitly wants text-to-image
     if (request.generation_mode === "text-to-image") {
@@ -1297,6 +1299,17 @@ export class KieAiClient {
       case "upscale":
         model = "grok-imagine/upscale";
         input = { task_id: request.task_id };
+        break;
+
+      case "image-to-image":
+        model = "grok-imagine/image-to-image";
+        if (hasImageUrls) {
+          input.image_urls = request.image_urls;
+        }
+        if (hasPrompt) {
+          input.prompt = request.prompt;
+        }
+        input.aspect_ratio = request.aspect_ratio || "1:1";
         break;
 
       case "image-to-video":
