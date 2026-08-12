@@ -2,17 +2,23 @@ import { z } from "zod";
 import type { ToolDef, ToolContext, ToolResult } from "./types.js";
 
 /**
- * Upload widget tool for MCP Apps (SEP-1865).
+ * Upload widget tool for MCP Apps (SEP-1865) with universal fallback.
  *
- * This tool declares a UI resource (ui://upload/form.html) that hosts
- * can render as an inline iframe widget. The widget allows users to
- * select and upload files directly, bypassing base64/URL workarounds.
+ * This tool declares a UI resource (ui://upload/form.html) that MCP-Apps-capable
+ * hosts can render as an inline iframe widget. For clients without MCP Apps
+ * support, it also returns a clickable link to open the widget in a browser.
  *
- * Flow:
+ * Flow (inline widget):
  * 1. Host detects _meta.ui.resourceUri → renders iframe
  * 2. User selects file in widget → widget POSTs to MCP server
  * 3. Server stores file, returns public URL
  * 4. Widget sends tools/call to notify model → model gets URL
+ *
+ * Flow (fallback link):
+ * 1. Client doesn't support MCP Apps → shows the returned markdown link
+ * 2. User clicks link → browser opens widget as standalone page
+ * 3. User uploads file → gets URL displayed → pastes URL back to chat
+ * 4. Model uses the pasted URL in subsequent tool calls
  */
 export const UploadWidgetSchema = z.object({
   // No input parameters needed – the widget handles everything
@@ -37,8 +43,10 @@ export const uploadWidgetTool: ToolDef<typeof UploadWidgetSchema> = {
     "ui/resourceUri": "ui://upload/form.html",
   },
   async run(_args, ctx: ToolContext): Promise<ToolResult> {
-    // The actual upload happens in the widget, not here.
-    // This tool just returns instructions for the model.
+    const baseUrl =
+      process.env.MCP_PUBLIC_URL || "http://localhost:3000";
+    const widgetUrl = `${baseUrl}/ui/upload/form.html`;
+
     return {
       content: [
         {
@@ -47,10 +55,14 @@ export const uploadWidgetTool: ToolDef<typeof UploadWidgetSchema> = {
             {
               success: true,
               message:
-                "Upload widget opened. The user can now select a file to upload. " +
-                "Once uploaded, the widget will call back with the file URL.",
+                "Upload widget is ready. If the inline widget is not visible, " +
+                "use the link below to open it in your browser.",
+              widget_url: widgetUrl,
               usage:
-                "Wait for the widget to complete the upload, then use the provided file_url in your next tool call.",
+                "Upload a file via the widget, then use the returned file_url in your next tool call.",
+              instructions_for_model:
+                "Present the widget_url as a clickable markdown link to the user: " +
+                `[📎 Open Upload Widget](${widgetUrl})`,
             },
             null,
             2,
