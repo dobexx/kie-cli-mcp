@@ -29,7 +29,11 @@ export type UploadWidgetRequest = z.infer<typeof UploadWidgetSchema>;
 export const uploadWidgetTool: ToolDef<typeof UploadWidgetSchema> = {
   name: "upload_widget",
   description:
-    "Open an upload widget to select and upload a file. The user picks a file in the rendered UI, it gets uploaded, and the resulting public URL is returned for use in other tools (e.g. reference_image_urls).",
+    "REQUIRED when the user wants to use an image/file that was attached to the chat but is not accessible as a public URL. " +
+    "This tool opens an upload widget where the user can select and upload the file directly. " +
+    "After upload, the user receives a public file_url that can be used in other tools (e.g. reference_image_urls, first_frame_url, input_urls). " +
+    "IMPORTANT: Do NOT try to access the file via terminal commands or base64. Always use this tool for file uploads. " +
+    "The widget auto-closes after upload and copies the URL to the user's clipboard.",
   category: "utility",
   schema: UploadWidgetSchema,
   // MCP Apps: declare the UI resource
@@ -55,14 +59,18 @@ export const uploadWidgetTool: ToolDef<typeof UploadWidgetSchema> = {
             {
               success: true,
               message:
-                "Upload widget is ready. If the inline widget is not visible, " +
-                "use the link below to open it in your browser.",
+                "I cannot access the file directly from the chat. Please use the upload widget below to upload it. " +
+                "The widget will close automatically after upload and copy the URL to your clipboard.",
               widget_url: widgetUrl,
-              usage:
-                "Upload a file via the widget, then use the returned file_url in your next tool call.",
+              next_steps:
+                "1. Click the link below to open the upload widget. " +
+                "2. Select your file and upload it. " +
+                "3. The window closes automatically and the URL is copied to your clipboard. " +
+                "4. Paste the URL here and I will use it in the next tool call.",
               instructions_for_model:
-                "Present the widget_url as a clickable markdown link to the user: " +
-                `[📎 Open Upload Widget](${widgetUrl})`,
+                "Tell the user: 'Please click this link to upload your file: [📎 Open Upload Widget](" +
+                widgetUrl +
+                ") — after upload, paste the copied URL here.'",
             },
             null,
             2,
