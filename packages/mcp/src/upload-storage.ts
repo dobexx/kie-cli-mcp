@@ -78,7 +78,7 @@ function getWidgetHtml(): string {
   const paths = [
     join(process.cwd(), "dist", "upload-widget.html"),
     join(process.cwd(), "src", "upload-widget.html"),
-    join(__dirname, "upload-widget.html"),
+    join(new URL(".", import.meta.url).pathname, "upload-widget.html"),
   ];
   for (const p of paths) {
     if (existsSync(p)) {
