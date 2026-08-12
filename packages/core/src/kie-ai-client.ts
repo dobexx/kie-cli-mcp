@@ -519,13 +519,15 @@ export class KieAiClient {
   async generateByteDanceSeedanceVideo(
     request: ByteDanceSeedanceVideoRequest,
   ): Promise<KieAiResponse<TaskResponse>> {
-    // Seedance 2.0 variants
+    // Seedance 2.0 and 2.5 variants
     const model =
-      request.mode === "mini"
-        ? "bytedance/seedance-2-mini"
-        : request.mode === "fast"
-          ? "bytedance/seedance-2-fast"
-          : "bytedance/seedance-2";
+      request.mode === "2.5"
+        ? "bytedance/seedance-2-5"
+        : request.mode === "mini"
+          ? "bytedance/seedance-2-mini"
+          : request.mode === "fast"
+            ? "bytedance/seedance-2-fast"
+            : "bytedance/seedance-2";
 
     const input: any = {
       prompt: request.prompt,

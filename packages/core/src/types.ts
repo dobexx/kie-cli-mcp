@@ -456,13 +456,13 @@ export const ByteDanceSeedanceVideoSchema = z
       .min(3)
       .max(20000)
       .describe("Text prompt for video generation (3-20000 characters)"),
-    // Mode: standard, fast, or the lower-cost Seedance 2.0 Mini
+    // Mode: standard, fast, mini, or Seedance 2.5 (30s, extended refs)
     mode: z
-      .enum(["standard", "fast", "mini"])
+      .enum(["standard", "fast", "mini", "2.5"])
       .default("standard")
       .optional()
       .describe(
-        "Generation mode: standard (higher quality), fast (iterative workflows), or mini (lowest-cost, fastest workflow)",
+        "Generation mode: standard (higher quality), fast (iterative workflows), mini (lowest-cost), or 2.5 (latest model, up to 30s, extended reference limits)",
       ),
     // Frame control
     first_frame_url: z
@@ -475,22 +475,22 @@ export const ByteDanceSeedanceVideoSchema = z
       .url()
       .optional()
       .describe("URL of image to use as the last frame (optional)"),
-    // Multimodal references
+    // Multimodal references (2.5 supports up to 30 images, 10 videos, 10 audios)
     reference_image_urls: z
       .array(z.string().url())
-      .max(9)
+      .max(30)
       .optional()
-      .describe("Reference images for style/subject guidance (up to 9)"),
+      .describe("Reference images for style/subject guidance (up to 9 for 2.0, up to 30 for 2.5)"),
     reference_video_urls: z
       .array(z.string().url())
-      .max(3)
+      .max(10)
       .optional()
-      .describe("Reference videos for motion/style guidance (up to 3)"),
+      .describe("Reference videos for motion/style guidance (up to 3 for 2.0, up to 10 for 2.5)"),
     reference_audio_urls: z
       .array(z.string().url())
-      .max(3)
+      .max(10)
       .optional()
-      .describe("Reference audio for sound-guided generation (up to 3)"),
+      .describe("Reference audio for sound-guided generation (up to 3 for 2.0, up to 10 for 2.5)"),
     // Output settings
     aspect_ratio: z
       .enum(["1:1", "9:16", "16:9", "4:3", "3:4", "21:9", "9:21", "adaptive"])
@@ -506,10 +506,10 @@ export const ByteDanceSeedanceVideoSchema = z
       .number()
       .int()
       .min(4)
-      .max(15)
+      .max(30)
       .default(5)
       .optional()
-      .describe("Duration of video in seconds (4-15)"),
+      .describe("Duration of video in seconds (4-15 for 2.0, 4-30 for 2.5)"),
     // Audio & safety
     generate_audio: z
       .boolean()
