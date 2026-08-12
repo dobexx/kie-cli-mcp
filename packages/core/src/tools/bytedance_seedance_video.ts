@@ -4,7 +4,7 @@ import type { ToolDef, ToolContext, ToolResult } from "./types.js";
 
 export const bytedanceSeedanceVideoTool: ToolDef<typeof ByteDanceSeedanceVideoSchema> = {
   name: "bytedance_seedance_video",
-  description: "Generate videos with ByteDance Seedance 2.0: standard, fast, or lower-cost Mini modes with multimodal references and native audio.",
+  description: "Generate videos with ByteDance Seedance: 2.0 modes (standard, fast, mini) or the new 2.5 mode with up to 30s duration, extended multimodal references (up to 30 images / 10 videos / 10 audios) and native audio.",
   category: "video",
   schema: ByteDanceSeedanceVideoSchema,
   async run(args, ctx: ToolContext): Promise<ToolResult> {
@@ -36,7 +36,7 @@ export const bytedanceSeedanceVideoTool: ToolDef<typeof ByteDanceSeedanceVideoSc
                 {
                   success: true,
                   task_id: response.data.taskId,
-                  message: `ByteDance Seedance 2.0 ${mode} generation task created successfully`,
+                  message: `ByteDance Seedance ${mode} generation task created successfully`,
                   parameters: {
                     mode,
                     prompt:
@@ -97,7 +97,7 @@ export const bytedanceSeedanceVideoTool: ToolDef<typeof ByteDanceSeedanceVideoSc
           aspect_ratio: "Optional: Video aspect ratio (default: 16:9)",
           resolution:
             'Optional: Video resolution: "480p" or "720p" (default: 720p)',
-          duration: "Optional: Video duration in seconds 4-15 (default: 5)",
+          duration: "Optional: Video duration in seconds 4-30 (default: 5; 4-15 for 2.0 modes)",
           generate_audio: "Optional: Generate native audio (default: true)",
           web_search:
             "Optional: Enable web search for prompt enhancement (default: false)",
@@ -112,7 +112,7 @@ export const bytedanceSeedanceVideoTool: ToolDef<typeof ByteDanceSeedanceVideoSc
         mode: 'Optional: "standard", "fast", or "mini"',
         aspect_ratio: "Optional: Video aspect ratio",
         resolution: 'Optional: "480p" or "720p"',
-        duration: "Optional: Duration in seconds 4-15",
+        duration: "Optional: Duration in seconds 4-30 (4-15 for 2.0 modes)",
         callBackUrl: "Optional: URL for task completion notifications",
       });
     }
