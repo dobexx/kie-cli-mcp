@@ -8,7 +8,9 @@ WORKDIR /app
 # against real packages, then install dev deps for the build.
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages packages
-RUN npm ci
+# Fix npm workspace bug in Alpine: clean install with fallback
+RUN npm ci --no-audit --no-fund || \
+    (rm -rf node_modules package-lock.json && npm install --no-audit --no-fund)
 
 # Build core, then esbuild-bundle the MCP server into a self-contained dist/.
 RUN npm run build -w @felores/kie-ai-core \
