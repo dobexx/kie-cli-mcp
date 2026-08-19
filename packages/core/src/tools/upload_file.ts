@@ -18,14 +18,20 @@ export const UploadFileSchema = z
       .string()
       .optional()
       .describe(
-        "Base64-encoded file content. Use when the LLM has direct access to the file bytes (e.g. from a chat attachment). Mutually exclusive with file_url.",
+        "Base64-encoded file content. Use when the LLM has direct access to the file bytes (e.g. from a chat attachment). Mutually exclusive with file_url and file_path.",
       ),
     file_url: z
       .string()
       .url()
       .optional()
       .describe(
-        "URL to download the file from (http/https). The MCP server fetches it server-side. Mutually exclusive with file_base64.",
+        "URL to download the file from (http/https). The MCP server fetches it server-side. Mutually exclusive with file_base64 and file_path.",
+      ),
+    file_path: z
+      .string()
+      .optional()
+      .describe(
+        "Local file path to read and upload (CLI only). Reads the file directly from disk — no base64 encoding needed. Mutually exclusive with file_base64 and file_url.",
       ),
     filename: z
       .string()
@@ -53,11 +59,15 @@ export const UploadFileSchema = z
       ),
   })
   .refine(
-    (v) =>
-      (v.file_base64 !== undefined) !== (v.file_url !== undefined),
+    (v) => {
+      const count = [v.file_base64, v.file_url, v.file_path].filter(
+        (x) => x !== undefined,
+      ).length;
+      return count === 1;
+    },
     {
       message:
-        "Provide exactly one of file_base64 or file_url, not both and not neither.",
+        "Provide exactly one of file_base64, file_url, or file_path. Not more, not less.",
     },
   );
 
@@ -99,6 +109,12 @@ export const uploadFileTool: ToolDef<typeof UploadFileSchema> = {
       if (request.file_base64 !== undefined) {
         // Direct base64 path — no network hop needed.
         bytes = new Uint8Array(Buffer.from(request.file_base64, "base64"));
+      } else if (request.file_path !== undefined) {
+        // Local file path — read directly from disk (CLI only).
+        // Note: This requires Node.js fs access, not available in MCP server context.
+        const fs = await import("node:fs/promises");
+        const buffer = await fs.readFile(request.file_path);
+        bytes = new Uint8Array(buffer);
       } else {
         // Fetch the file server-side (works for OpenWebUI file URLs etc.)
         const headers: Record<string, string> = {};
@@ -177,9 +193,11 @@ export const uploadFileTool: ToolDef<typeof UploadFileSchema> = {
     } catch (error) {
       return ctx.formatError("upload_file", error, {
         file_base64:
-          "Provide this OR file_url: base64-encoded content of the file",
+          "Provide this OR file_url OR file_path: base64-encoded content",
         file_url:
-          "Provide this OR file_base64: http(s) URL the server can download",
+          "Provide this OR file_base64 OR file_path: http(s) URL to download",
+        file_path:
+          "Provide this OR file_base64 OR file_url: local file path (CLI only)",
         filename: "Required: filename with extension, e.g. 'ref.jpg'",
         content_type:
           "Optional: MIME type, auto-detected from extension when omitted",

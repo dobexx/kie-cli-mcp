@@ -223,24 +223,49 @@ automatically uses image-to-image mode.
 
 ### File Upload Tools
 
-Upload local files or fetch from URLs to get public URLs for use in other tools:
+Upload files to Kie.ai and get public URLs for use in other tools. Three methods:
 
+**Method 1: Local file (CLI only, recommended for large files)**
 ```bash
-# Upload from base64 (when you have direct file access)
+# Upload directly from disk — no base64 encoding needed
+kie-cli upload_file \
+  --file_path ./my-image.png \
+  --filename "reference.jpg" \
+  --json
+```
+
+**Method 2: Base64 from stdin (for pipes and large files)**
+```bash
+# Pipe base64 content via stdin (use --file_base64=- with equals sign)
+cat image.png | base64 | kie-cli upload_file \
+  --file_base64=- \
+  --filename "reference.jpg" \
+  --json
+
+# Or from a file
+base64 image.png | kie-cli upload_file --file_base64=- --filename "ref.jpg" --json
+```
+
+**Method 3: Base64 string (small files only, <100 KB)**
+```bash
+# Direct base64 string — works for small images only
 kie-cli upload_file \
   --file_base64 "iVBORw0KGgo..." \
   --filename "reference.jpg" \
-  --content_type "image/jpeg" \
   --json
+```
 
-# Upload from URL (server fetches it)
+**Method 4: Remote URL (server fetches it)**
+```bash
 kie-cli upload_file \
   --file_url "https://example.com/image.png" \
   --filename "reference.png" \
   --auth_header "Bearer token-if-needed" \
   --json
+```
 
-# Get a presigned URL for direct client-side upload
+**Presigned URL for browser-based upload:**
+```bash
 kie-cli get_upload_url \
   --filename "video.mp4" \
   --content_type "video/mp4" \
@@ -248,6 +273,12 @@ kie-cli get_upload_url \
 # Returns: { "upload_url": "...", "file_url": "..." }
 # Client PUTs raw bytes to upload_url, then uses file_url in other tools
 ```
+
+**Important limitations:**
+- `--file_path` only works in the CLI, not via MCP server
+- `--file_base64` as direct argument fails for files >~100 KB (command-line length limit) — use stdin (`--file_base64=-`) or `--file_path` instead
+- `get_upload_url` requires the MCP server to be reachable (uses MCP_PUBLIC_URL)
+
 
 **Common use case:** You have a local image that needs to be a public URL for
 `reference_image_urls` in Seedance or other tools.

@@ -57,6 +57,16 @@ async function runTool(
   for (const [key, p] of Object.entries(props)) {
     let value = argv[key];
     if (value === undefined) continue;
+
+    // Special case: "-" means read from stdin (for large base64 payloads)
+    if (value === "-" && key === "file_base64") {
+      const chunks: Buffer[] = [];
+      for await (const chunk of process.stdin) {
+        chunks.push(chunk);
+      }
+      value = Buffer.concat(chunks).toString("utf-8").trim();
+    }
+
     if (isJsonProp(p) && typeof value === "string") {
       try {
         value = JSON.parse(value);

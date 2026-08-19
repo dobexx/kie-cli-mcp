@@ -105,10 +105,19 @@ export const getUploadUrlTool: ToolDef<typeof GetUploadUrlSchema> = {
         ],
       };
     } catch (error) {
+      // Enhanced error reporting for network issues
+      let errorDetails = "";
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        errorDetails = " Network error — check MCP_PUBLIC_URL and server connectivity.";
+      } else if (error instanceof Error && error.message.includes("Failed to get upload token")) {
+        errorDetails = " Server rejected the token request. Check filename/content_type validity.";
+      }
+      
       return ctx.formatError("get_upload_url", error, {
         filename: "Required: filename with extension, e.g. 'ref.jpg'",
         content_type:
           "Optional: MIME type, auto-detected from extension when omitted",
+        _debug: `Hint:${errorDetails} If the problem persists, use upload_file with --file_path or --file_url instead.`,
       });
     }
   },
