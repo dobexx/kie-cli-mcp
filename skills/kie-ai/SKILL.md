@@ -160,6 +160,43 @@ kie-cli bytedance_seedance_video \
 - References: up to **30 images / 10 videos / 10 audios** (vs. 9/3/3 in 2.0)
 - Model ID: `bytedance/seedance-2-5`
 
+### Video Continuation (Video fortsetzen)
+
+Extend a previously generated video with Seedance. Three methods:
+
+**Method 1: Task Reference (recommended for Kie.ai-generated videos)**
+```bash
+# Use the task_id from a previous Seedance generation
+kie-cli bytedance_seedance_video \
+  --prompt "continue the scene, the character walks forward" \
+  --aspect_ratio adaptive \
+  --extension_task_id "previous-task-id-here" \
+  --duration 10 \
+  --json
+```
+
+**Method 2: Reference Video (for external videos)**
+```bash
+# Provide the video URL directly
+kie-cli bytedance_seedance_video \
+  --prompt "continue this video" \
+  --reference_video_urls "https://example.com/previous-video.mp4" \
+  --duration 10 \
+  --json
+```
+
+**Method 3: Last Frame (most precise control)**
+```bash
+# Extract the last frame from a video and use it as first_frame_url
+kie-cli bytedance_seedance_video \
+  --prompt "continue from this exact frame" \
+  --first_frame_url "https://example.com/last-frame.jpg" \
+  --duration 10 \
+  --json
+```
+
+**Important:** `--aspect_ratio adaptive` is **required** for Method 1 (extension_task_id). It inherits the aspect ratio from the source video. For Methods 2 and 3, you can also use explicit ratios like `16:9`.
+
 ### Grok Imagine Image 2.0 (Image-to-Image)
 
 Transform existing images with Grok Imagine:
