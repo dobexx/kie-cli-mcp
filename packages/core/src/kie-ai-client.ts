@@ -557,6 +557,11 @@ export class KieAiClient {
       input.reference_audio_urls = request.reference_audio_urls;
     }
 
+    // Video extension
+    if (request.extension_task_id) {
+      input.extension_task_id = request.extension_task_id;
+    }
+
     // Web search
     if (request.web_search) {
       input.web_search = true;

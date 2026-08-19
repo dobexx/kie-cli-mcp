@@ -70,7 +70,7 @@ export const NanoBananaImageSchema = z
       .default(false)
       .optional()
       .describe("Enable Google Search grounding for factual image generation"),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
@@ -146,7 +146,7 @@ export const Veo3GenerateSchema = z.object({
     .max(99999)
     .optional()
     .describe("Random seed for consistent results"),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -188,7 +188,7 @@ export const SunoGenerateSchema = z
       .default("V5")
       .optional()
       .describe("AI model version for generation"),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
@@ -373,7 +373,7 @@ export const ElevenLabsTTSSchema = z.object({
     .describe(
       "Language code (ISO 639-1) for language enforcement (turbo model only)",
     ),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -439,7 +439,7 @@ export const ElevenLabsSoundEffectsSchema = z.object({
     .default("mp3_44100_192")
     .optional()
     .describe("Output format of the generated audio"),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -526,18 +526,26 @@ export const ByteDanceSeedanceVideoSchema = z
       .default(false)
       .optional()
       .describe("Enable NSFW content filtering"),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
       .describe(
         "Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided)",
       ),
+    // Video extension: continue a previous task
+    extension_task_id: z
+      .string()
+      .optional()
+      .describe(
+        "Optional: Task ID of a previous Seedance video to extend. When provided, the new video continues from the last frame of the referenced task. Use with aspect_ratio 'adaptive'.",
+      ),
   })
   .refine(
     (data) => {
-      // "adaptive" aspect_ratio only valid with first_frame_url
-      if (data.aspect_ratio === "adaptive" && !data.first_frame_url) {
+      // "adaptive" aspect_ratio requires first_frame_url OR extension_task_id
+      // (extension tasks inherit the aspect ratio from the original video)
+      if (data.aspect_ratio === "adaptive" && !data.first_frame_url && !data.extension_task_id) {
         return false;
       }
       const hasFrames = !!data.first_frame_url || !!data.last_frame_url;
@@ -550,7 +558,7 @@ export const ByteDanceSeedanceVideoSchema = z
     },
     {
       message:
-        "aspect_ratio 'adaptive' requires first_frame_url, and frame inputs cannot be combined with reference inputs",
+        "aspect_ratio 'adaptive' requires first_frame_url or extension_task_id, and frame inputs cannot be combined with reference inputs",
       path: [],
     },
   );
@@ -592,7 +600,7 @@ export const RunwayAlephVideoSchema = z.object({
     .url()
     .optional()
     .describe("URL of reference image for style guidance"),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -730,7 +738,7 @@ export const Wan27VideoSchema = z
       .default(false)
       .optional()
       .describe("Enable NSFW content filter"),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
@@ -854,7 +862,7 @@ export const ByteDanceSeedreamImageSchema = z.object({
     .boolean()
     .optional()
     .describe("Enable NSFW filtering for Seedream 5 Pro"),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -915,7 +923,7 @@ export const ZImageSchema = z.object({
     .enum(["1:1", "4:3", "3:4", "16:9", "9:16"])
     .default("1:1")
     .describe("Aspect ratio for the generated image"),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -979,7 +987,7 @@ export const GrokImagineSchema = z
       .describe(
         "Explicit mode selection (auto-detected if not provided): text-to-image, text-to-video, image-to-video, or upscale",
       ),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
@@ -1071,7 +1079,7 @@ export const InfiniTalkSchema = z.object({
     .max(1000000)
     .optional()
     .describe("Random seed for reproducibility (10000-1000000)"),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -1109,7 +1117,7 @@ export const KlingAvatarSchema = z.object({
     .describe(
       "Video quality: standard (720P, faster) or pro (1080P, higher quality)",
     ),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -1190,7 +1198,7 @@ export const HappyHorseVideoSchema = z
       .max(2147483647)
       .optional()
       .describe("Random seed for reproducible results (0-2147483647)"),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
@@ -1297,12 +1305,19 @@ export const QwenImageSchema = z
       .default(false)
       .optional()
       .describe("Sync mode (edit mode only)"),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
       .describe(
         "Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided)",
+      ),
+    // Video extension: continue a previous task
+    extension_task_id: z
+      .string()
+      .optional()
+      .describe(
+        "Optional: Task ID of a previous Seedance video to extend. When provided, the new video continues from the last frame of the referenced task. Use with aspect_ratio 'adaptive'.",
       ),
   })
   .refine(
@@ -1452,12 +1467,19 @@ export const MidjourneyGenerateSchema = z
       .optional()
       .describe("Auto-translate non-English prompts to English"),
     waterMark: z.string().max(100).optional().describe("Watermark identifier"),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
       .describe(
         "Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided)",
+      ),
+    // Video extension: continue a previous task
+    extension_task_id: z
+      .string()
+      .optional()
+      .describe(
+        "Optional: Task ID of a previous Seedance video to extend. When provided, the new video continues from the last frame of the referenced task. Use with aspect_ratio 'adaptive'.",
       ),
   })
   .refine(
@@ -1538,7 +1560,7 @@ export const GptImage2Schema = z.object({
     .default("1K")
     .optional()
     .describe("Output resolution"),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -1616,7 +1638,7 @@ export const FluxKontextImageSchema = z
       .enum(["flux-kontext-pro", "flux-kontext-max"])
       .default("flux-kontext-pro")
       .describe("Model version to use for generation"),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
@@ -1667,7 +1689,7 @@ export const TopazUpscaleImageSchema = z.object({
     .describe(
       "Upscale factor: 1x (enhance only), 2x (default), 4x, or 8x. Max output dimension is 20,000px.",
     ),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
@@ -1687,12 +1709,19 @@ export const RecraftRemoveBackgroundSchema = z
       .describe(
         "URL of image to remove background from (PNG, JPG, WEBP, max 5MB, 16MP, 4096px max, 256px min)",
       ),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
       .describe(
         "Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided)",
+      ),
+    // Video extension: continue a previous task
+    extension_task_id: z
+      .string()
+      .optional()
+      .describe(
+        "Optional: Task ID of a previous Seedance video to extend. When provided, the new video continues from the last frame of the referenced task. Use with aspect_ratio 'adaptive'.",
       ),
   })
   .refine((data) => {
@@ -1746,12 +1775,19 @@ export const IdeogramReframeSchema = z
       .default(0)
       .optional()
       .describe("Seed for reproducible results"),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
       .describe(
         "Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided)",
+      ),
+    // Video extension: continue a previous task
+    extension_task_id: z
+      .string()
+      .optional()
+      .describe(
+        "Optional: Task ID of a previous Seedance video to extend. When provided, the new video continues from the last frame of the referenced task. Use with aspect_ratio 'adaptive'.",
       ),
   })
   .refine((data) => {
@@ -1844,12 +1880,19 @@ export const KlingVideoSchema = z
       .describe(
         "Character/object elements for consistent identity across shots. Provide name, description, and reference images/videos",
       ),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
       .describe(
         "Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided)",
+      ),
+    // Video extension: continue a previous task
+    extension_task_id: z
+      .string()
+      .optional()
+      .describe(
+        "Optional: Task ID of a previous Seedance video to extend. When provided, the new video continues from the last frame of the referenced task. Use with aspect_ratio 'adaptive'.",
       ),
   })
   .refine(
@@ -1936,12 +1979,19 @@ export const HailuoVideoSchema = z
       .describe(
         "Whether to use the model's prompt optimizer for better results",
       ),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
       .describe(
         "Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided)",
+      ),
+    // Video extension: continue a previous task
+    extension_task_id: z
+      .string()
+      .optional()
+      .describe(
+        "Optional: Task ID of a previous Seedance video to extend. When provided, the new video continues from the last frame of the referenced task. Use with aspect_ratio 'adaptive'.",
       ),
   })
   .refine(
@@ -2028,12 +2078,19 @@ export const Flux2ImageSchema = z
       .describe(
         "Model variant: 'pro' for fast reliable results, 'flex' for more control and fine-tuning.",
       ),
-    callBackUrl: z
+        callBackUrl: z
       .string()
       .url()
       .optional()
       .describe(
         "Optional: URL for task completion notifications (uses KIE_AI_CALLBACK_URL env var if not provided)",
+      ),
+    // Video extension: continue a previous task
+    extension_task_id: z
+      .string()
+      .optional()
+      .describe(
+        "Optional: Task ID of a previous Seedance video to extend. When provided, the new video continues from the last frame of the referenced task. Use with aspect_ratio 'adaptive'.",
       ),
   })
   .refine(
@@ -2080,7 +2137,7 @@ export const WanAnimateSchema = z.object({
     .describe(
       "Output resolution: 480p (~$0.03/sec), 580p (~$0.0475/sec), 720p (~$0.0625/sec)",
     ),
-  callBackUrl: z
+      callBackUrl: z
     .string()
     .url()
     .optional()
