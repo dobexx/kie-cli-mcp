@@ -167,7 +167,7 @@ Extend a previously generated video with Seedance. **Choose your method based on
 | Method | Command | Transition Quality | Best For |
 |--------|---------|-------------------|----------|
 | **Frame Extraction** (recommended) | `--first_frame_url` | ✅ Seamless 1:1 | Production, final output |
-| **Task Reference** | `--extension_task_id` | ⚠️ Visible jump | Quick iterations, drafts |
+| **Task Reference** | `--extension_task_id` | ⚠️ Undocumented / may jump | Quick iterations (verify quality) |
 | **Reference Video** | `--reference_video_urls` | ⚠️ Style-guided | External videos, remixing |
 
 ---
@@ -211,7 +211,7 @@ kie-cli bytedance_seedance_video \
   --json
 ```
 
-**⚠️ Quality warning:** This method may produce a **visible jump** at the transition. The model interprets the scene semantically ("same scene, new shot") rather than continuing from exact pixels. Use for drafts and quick tests only.
+**⚠️ Note:** `extension_task_id` is an **undocumented Kie.ai parameter**. In our testing, it produced a visible transition jump compared to frame-extraction. The exact behavior may vary. For seamless continuations, use frame extraction (Method 1) instead.
 
 ---
 
