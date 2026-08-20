@@ -24,6 +24,41 @@
 >
 > And the bundled **CLI (`kie-cli`) costs zero context tokens** until you call it: the agent discovers commands on demand with `kie-cli --help` instead of carrying schemas around. One registry, two surfaces, minimal footprint.
 
+### Enhanced Seedance 2.5 Support (dobexx fork)
+
+Our fork extends the upstream with production-tested enhancements:
+
+| Feature | Upstream | dobexx fork |
+|---------|----------|-------------|
+| Seedance 2.5 base support | ✅ | ✅ |
+| Explicit `mode: "2.5"` selection | ❌ | ✅ |
+| `extension_task_id` for video continuation | ❌ | ✅ |
+| Duration up to 30s | ❌ | ✅ |
+| Extended reference limits (30 images) | ❌ | ✅ |
+| File upload tools (`upload_file`, `get_upload_url`) | ❌ | ✅ |
+| Grok Imagine Image 2.0 (image-to-image) | ❌ | ✅ |
+| CLI local file upload (`--file_path`) | ❌ | ✅ |
+| stdin base64 for large files | ❌ | ✅ |
+
+### Video Continuation Workflow
+
+Seamless video extension with frame extraction:
+
+```bash
+# Extract last frame → upload → continue from exact pixels
+ffmpeg -y -sseof -0.1 -i input.mp4 -vframes 1 last-frame.png
+FILE_URL=$(kie-cli upload_file --file_path last-frame.png --filename "frame.png" --json | jq -r '.file_url')
+kie-cli bytedance_seedance_video \
+  --mode "2.5" \
+  --prompt "Continue seamlessly from this exact frame" \
+  --first_frame_url "$FILE_URL" \
+  --aspect_ratio adaptive \
+  --duration 15 \
+  --json
+```
+
+See [skills/kie-ai/SKILL.md](skills/kie-ai/SKILL.md) for the complete workflow.
+
 ## Two ways to use it (one shared core)
 
 The MCP server and the CLI are generated from the same tool registry, so both expose the exact same models and install **independently**:
