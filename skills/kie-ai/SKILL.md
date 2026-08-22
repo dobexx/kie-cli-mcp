@@ -167,7 +167,6 @@ Extend a previously generated video with Seedance. **Choose your method based on
 | Method | Command | Transition Quality | Best For |
 |--------|---------|-------------------|----------|
 | **Frame Extraction** (recommended) | `--first_frame_url` | ✅ Seamless 1:1 | Production, final output |
-| **Task Reference** | `--extension_task_id` | ⚠️ Undocumented / may jump | Quick iterations (verify quality) |
 | **Reference Video** | `--reference_video_urls` | ⚠️ Style-guided | External videos, remixing |
 
 ---
@@ -197,21 +196,7 @@ kie-cli bytedance_seedance_video \
 
 ---
 
-**Method 2: Task Reference (fastest, for Kie.ai-generated videos)**
-
-Reference a previous Seedance task directly — no upload needed:
-
-```bash
-kie-cli bytedance_seedance_video \
-  --mode "2.5" \
-  --prompt "Continue the scene, the character walks forward" \
-  --extension_task_id "previous-task-id-here" \
-  --aspect_ratio adaptive \
-  --duration 10 \
-  --json
-```
-
-**⚠️ Note:** `extension_task_id` is an **undocumented Kie.ai parameter**. In our testing, it produced a visible transition jump compared to frame-extraction. The exact behavior may vary. For seamless continuations, use frame extraction (Method 1) instead.
+**Note on `extension_task_id`:** This parameter exists in the Kie.ai API but does **not** provide seamless video continuation. It creates a new video with semantic similarity, not pixel-exact continuation. For production use, always use frame extraction (Method 1).
 
 ---
 
@@ -230,9 +215,9 @@ kie-cli bytedance_seedance_video \
 ---
 
 **Important notes:**
-- `--aspect_ratio adaptive` is **required** for `--extension_task_id` (inherits ratio from source)
 - For `--first_frame_url`, you can use `adaptive` or explicit ratios like `16:9`
 - Frame extraction works with **any** video file, not just Kie.ai-generated ones
+- `extension_task_id` is available but **not recommended** for seamless continuations (creates semantic similarity, not pixel-exact continuation)
 
 ### Grok Imagine Image 2.0 (Image-to-Image)
 
