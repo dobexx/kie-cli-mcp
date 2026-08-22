@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { EventEmitter } from "node:events";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import express, { type Request, type Response } from "express";
@@ -32,7 +33,14 @@ interface UploadToken {
   contentType: string;
   createdAt: number;
   used: boolean;
+  bytesReceived: number;
+  totalBytes: number;
+  status: 'pending' | 'uploading' | 'completed' | 'failed';
 }
+
+// Global event emitter for upload progress (SSE)
+export const uploadEvents = new EventEmitter();
+uploadEvents.setMaxListeners(100); // Allow many concurrent uploads
 
 // In-memory token store (tokens are short-lived, restart-safe)
 const tokens = new Map<string, UploadToken>();
@@ -141,6 +149,74 @@ document.addEventListener('click', async (e) => {
 </script></body></html>`;
 }
 
+/**
+ * GET /upload/progress/:token
+ *
+ * Server-Sent Events (SSE) endpoint for real-time upload progress.
+ * Falls back to polling if SSE is not supported by the client.
+ */
+router.get("/upload/progress/:token", (req: Request, res: Response) => {
+  const tokenId = req.params.token;
+  const token = tokens.get(tokenId);
+
+  if (!token) {
+    res.status(404).json({ error: "Token not found or expired" });
+    return;
+  }
+
+  // Set SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no', // Disable nginx buffering
+  });
+
+  // Send initial state
+  res.write(`data: ${JSON.stringify({
+    status: token.status,
+    bytesReceived: token.bytesReceived,
+    totalBytes: token.totalBytes,
+  })}\n\n`);
+
+  // Listen for progress events
+  const listener = (data: any) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    if (data.status === 'completed' || data.status === 'failed') {
+      res.end();
+      uploadEvents.off(`upload:${tokenId}`, listener);
+    }
+  };
+
+  uploadEvents.on(`upload:${tokenId}`, listener);
+
+  // Cleanup on client disconnect
+  req.on('close', () => {
+    uploadEvents.off(`upload:${tokenId}`, listener);
+  });
+});
+
+/**
+ * GET /upload/status/:token
+ *
+ * Simple polling endpoint for upload status (CLI fallback).
+ */
+router.get("/upload/status/:token", (req: Request, res: Response) => {
+  const tokenId = req.params.token;
+  const token = tokens.get(tokenId);
+
+  if (!token) {
+    res.status(404).json({ error: "Token not found or expired" });
+    return;
+  }
+
+  res.json({
+    status: token.status,
+    bytesReceived: token.bytesReceived,
+    totalBytes: token.totalBytes,
+  });
+});
+
 export function createUploadRouter(): express.Router {
   const router = express.Router();
 
@@ -160,6 +236,9 @@ export function createUploadRouter(): express.Router {
       contentType,
       createdAt: Date.now(),
       used: false,
+      bytesReceived: 0,
+      totalBytes: 0,
+      status: 'pending',
     };
     tokens.set(token.id, token);
 
@@ -194,8 +273,14 @@ export function createUploadRouter(): express.Router {
       return;
     }
 
+    // Mark as uploading and emit start event
+    token.status = 'uploading';
+    uploadEvents.emit(`upload:${tokenId}`, { status: 'uploading', bytesReceived: 0, totalBytes: token.totalBytes });
+
     const body = req.body;
     if (!Buffer.isBuffer(body) || body.length === 0) {
+      token.status = 'failed';
+      uploadEvents.emit(`upload:${tokenId}`, { status: 'failed', error: 'Empty or invalid file body' });
       res.status(400).json({ error: "Empty or invalid file body" });
       return;
     }
@@ -216,6 +301,14 @@ export function createUploadRouter(): express.Router {
     }
 
     token.used = true;
+    token.status = 'completed';
+    token.bytesReceived = body.length;
+    uploadEvents.emit(`upload:${tokenId}`, { 
+      status: 'completed', 
+      bytesReceived: body.length,
+      totalBytes: body.length,
+      file_url: downloadUrl 
+    });
     files.set(fileId, {
       path: filePath,
       expiresAt: Date.now() + FILE_TTL_MS,
